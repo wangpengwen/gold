@@ -4,7 +4,7 @@ import (
 	agentv1 "github.com/aunum/gold/pkg/v1/agent"
 	envv1 "github.com/aunum/gold/pkg/v1/env"
 	modelv1 "github.com/aunum/gold/pkg/v1/model"
-	l "github.com/aunum/gold/pkg/v1/model/layers"
+	"github.com/aunum/gold/pkg/v1/model/layer"
 
 	"github.com/aunum/log"
 	g "gorgonia.org/gorgonia"
@@ -38,30 +38,33 @@ var DefaultPolicyConfig = &PolicyConfig{
 }
 
 // LayerBuilder builds layers.
-type LayerBuilder func(x, y *modelv1.Input) []l.Layer
+type LayerBuilder func(x, y *modelv1.Input) []layer.Config
 
 // DefaultFCLayerBuilder is a default fully connected layer builder.
-var DefaultFCLayerBuilder = func(x, y *modelv1.Input) []l.Layer {
-	return []l.Layer{
-		fc.New(x.Squeeze()[0], 24, fc.WithName("fc1")),
-		fc.New(24, 24, fc.WithName("fc2")),
-		fc.New(24, y.Squeeze()[0], fc.WithActivation(activation.Linear), fc.WithName("qvalues")),
+var DefaultFCLayerBuilder = func(x, y *modelv1.Input) []layer.Config {
+	return []layer.Config{
+		layer.FC{Input: x.Shape()[0], Output: 24},
+		layer.FC{Input: 24, Output: 24},
+		layer.FC{Input: 24, Output: y.Shape()[0], Activation: layer.Linear},
 	}
 }
 
-// DefaultConvLayerBuilder is a default fully connected layer builder.
-var DefaultConvLayerBuilder = func(x, y *modelv1.Input) []l.Layer {
-	return []l.Layer{
-		conv2d.New(1, 32, 3, 3, conv2d.WithConv2DName("fc1")),
-		fc.New(24, 24, fc.WithName("fc2")),
-		fc.New(24, y.Squeeze()[0], fc.WithActivation(activation.Linear), fc.WithName("qvalues")),
+// DefaultAtariLayerBuilder is a default fully connected layer builder.
+var DefaultAtariLayerBuilder = func(x, y *modelv1.Input) []layer.Config {
+	return []layer.Config{
+		layer.Conv2D{Input: 1, Output: 32, Width: 3, Height: 3},
+		layer.Flatten{},
+		layer.FC{Input: 32 * 3 * 3, Output: 24},
+		layer.FC{Input: 24, Output: y.Shape()[0], Activation: layer.Linear},
 	}
 }
 
 // MakePolicy makes a model.
 func MakePolicy(name string, config *PolicyConfig, base *agentv1.Base, env *envv1.Env) (modelv1.Model, error) {
-	x := modelv1.NewInput("state", []int{1, env.ObservationSpaceShape()[0]})
-	y := modelv1.NewInput("actionPotentials", []int{1, envv1.PotentialsShape(env.ActionSpace)[0]})
+	x := modelv1.NewInput("state", env.ObservationSpaceShape())
+	x.OneOfMany()
+	y := modelv1.NewInput("actionPotentials", envv1.PotentialsShape(env.ActionSpace))
+	y.OneOfMany()
 
 	log.Debugv("x shape", x.Shape())
 	log.Debugv("y shape", y.Shape())

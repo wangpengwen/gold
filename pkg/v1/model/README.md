@@ -30,7 +30,7 @@ model.AddLayers(
 optimizer := g.NewRMSPropSolver()
 
 // compile the model with options
-model.Compile(xi, yi,
+model.Compile(x, y,
     WithOptimizer(optimizer),
     WithLoss(CrossEntropy),
     WithBatchSize(100),

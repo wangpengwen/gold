@@ -5,8 +5,11 @@ import (
 	"github.com/aunum/gold/pkg/v1/common"
 	"github.com/aunum/gold/pkg/v1/common/require"
 	envv1 "github.com/aunum/gold/pkg/v1/env"
+	modelv1 "github.com/aunum/gold/pkg/v1/model"
 	"github.com/aunum/gold/pkg/v1/track"
 	"github.com/aunum/log"
+
+	g "gorgonia.org/gorgonia"
 )
 
 func main() {
@@ -16,11 +19,19 @@ func main() {
 
 	env, err := s.Make("Pong-v0",
 		envv1.WithWrapper(envv1.DefaultAtariWrapper),
-		envv1.WithNormalizer(envv1.NewReshapeNormalizer([]int{1, 84, 84})),
 	)
 	require.NoError(err)
 
-	agent, err := deepq.NewAgent(deepq.DefaultAgentConfig, env)
+	agentConfig := deepq.DefaultAgentConfig
+	policyConfig := &deepq.PolicyConfig{
+		Loss:         modelv1.CrossEntropy,
+		Optimizer:    g.NewAdamSolver(),
+		LayerBuilder: deepq.DefaultAtariLayerBuilder,
+		BatchSize:    20,
+		Track:        true,
+	}
+	agentConfig.PolicyConfig = policyConfig
+	agent, err := deepq.NewAgent(agentConfig, env)
 	require.NoError(err)
 
 	agent.View()

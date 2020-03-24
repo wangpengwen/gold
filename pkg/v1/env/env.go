@@ -38,6 +38,7 @@ type Env struct {
 	logger    *log.Logger
 	recording bool
 	wrappers  []*spherev1alpha.EnvWrapper
+	reshape   []int
 }
 
 // Opt is an environment option.
@@ -372,6 +373,9 @@ func (e *Env) ActionSpaceShape() []int {
 
 // ObservationSpaceShape is the shape of the observation space.
 func (e *Env) ObservationSpaceShape() []int {
+	if len(e.reshape) != 0 {
+		return e.reshape
+	}
 	return SpaceShape(e.ObservationSpace)
 }
 
