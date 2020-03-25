@@ -54,8 +54,12 @@ var DefaultAtariLayerBuilder = func(x, y *modelv1.Input) []layer.Config {
 	return []layer.Config{
 		layer.Conv2D{Input: 1, Output: 32, Width: 3, Height: 3},
 		layer.MaxPooling2D{},
+		layer.Conv2D{Input: 32, Output: 64, Width: 3, Height: 3},
+		layer.MaxPooling2D{},
+		layer.Conv2D{Input: 64, Output: 128, Width: 3, Height: 3},
+		layer.MaxPooling2D{},
 		layer.Flatten{},
-		layer.FC{Input: 32 * 3 * 3, Output: 24},
+		layer.FC{Input: 12800, Output: 24},
 		layer.FC{Input: 24, Output: y.Squeeze()[0], Activation: layer.Linear},
 	}
 }
@@ -73,7 +77,8 @@ func MakePolicy(name string, config *PolicyConfig, base *agentv1.Base, env *envv
 
 	model, err := modelv1.NewSequential(name)
 	if err != nil {
-		return nil, err
+		panic(err)
+		// return nil, err
 	}
 	model.AddLayers(config.LayerBuilder(x, y)...)
 
@@ -92,7 +97,8 @@ func MakePolicy(name string, config *PolicyConfig, base *agentv1.Base, env *envv
 
 	err = model.Compile(x, y, opts.Values()...)
 	if err != nil {
-		return nil, err
+		panic(err)
+		// return nil, err
 	}
 	return model, nil
 }
