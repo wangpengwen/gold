@@ -19,6 +19,7 @@ func main() {
 
 	env, err := s.Make("Pong-v0",
 		envv1.WithWrapper(envv1.DefaultAtariWrapper),
+		envv1.WithNormalizer(envv1.NewExpandDimsNormalizer(0)),
 	)
 	require.NoError(err)
 

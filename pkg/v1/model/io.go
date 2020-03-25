@@ -2,7 +2,6 @@ package model
 
 import (
 	"fmt"
-	"reflect"
 
 	l "github.com/aunum/gold/pkg/v1/model/layer"
 	"github.com/aunum/log"
@@ -22,11 +21,10 @@ type InputOr interface {
 
 // Input into the model.
 type Input struct {
-	name    string
-	shape   t.Shape
-	dtype   t.Dtype
-	node    *g.Node
-	reshape []int
+	name  string
+	shape t.Shape
+	dtype t.Dtype
+	node  *g.Node
 }
 
 // InputOpt is an input option.
@@ -156,13 +154,6 @@ func (i *Input) Check(value g.Value) error {
 
 // Set the value of the input.
 func (i *Input) Set(value g.Value) error {
-	if len(i.reshape) != 0 {
-		denseVal, ok := value.(*t.Dense)
-		if !ok {
-			return fmt.Errorf("reshape of value type %v not yet implemented", reflect.TypeOf(denseVal).String())
-		}
-		denseVal.Reshape(i.reshape...)
-	}
 	err := i.Check(value)
 	if err != nil {
 		return err
@@ -195,8 +186,7 @@ func NameAsBatch(name string) string {
 // OneOfMany normalizes the input shape to be one of many.
 // Any incoming singular input will also be normalized to this shape.
 func (i *Input) OneOfMany() (err error) {
-	i.shape = []int{1, i.shape[0]}
-	i.reshape = i.shape
+	i.shape = append([]int{1}, i.shape...)
 	if i.node != nil {
 		i.node, err = g.Reshape(i.node, i.shape)
 		if err != nil {
@@ -204,6 +194,15 @@ func (i *Input) OneOfMany() (err error) {
 		}
 	}
 	return nil
+}
+
+// EnsureBatch checks that the first dimension is 1 or reshapes it to be so.
+func (i *Input) EnsureBatch() *Input {
+	if i.Shape()[0] != 1 || len(i.Shape()) == 1 {
+		i.shape = append([]int{1}, i.shape...)
+		log.Infof("reshaping %v to %v to have a batch of 1", i.Name(), i.Shape())
+	}
+	return i
 }
 
 // Validate the input.
